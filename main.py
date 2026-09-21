@@ -18,8 +18,6 @@ API_ID = int(os.environ.get("API_ID", 1234567))
 API_HASH = os.environ.get("API_HASH", "YOUR_API_HASH")
 SESSION_STRING = os.environ.get("SESSION_STRING", "YOUR_STRING_SESSION")
 CHANNEL = int(os.environ.get("CHANNEL_ID", -1001234567890))
-# Yahan apne Telegram channel ka public username likhein (बिना @ ke, jaise: Cartoon_crazy_toons)
-CHANNEL_USERNAME = os.environ.get("CHANNEL_USERNAME", "Cartoon_crazy_toons")
 FIREBASE_DB_URL = os.environ.get("FIREBASE_DB_URL")
 
 cred_json_str = os.environ.get("FIREBASE_CRED_JSON")
@@ -93,6 +91,14 @@ async def upload_photo():
         form_data = await request.form
         files = await request.files
         device_id = form_data.get("device_id", "")
+        
+        # Frontend se aane wale text fields ko yahan capture kiya gaya hai
+        title = form_data.get("title", "")
+        location = form_data.get("location", "")
+        rent = form_data.get("rent", "")
+        contact = form_data.get("contact", "")
+        details = form_data.get("details", "")
+
         file = files.get("file")
         if not file or not device_id:
             return jsonify({"error": "File or Device ID missing"}), 400
@@ -105,14 +111,18 @@ async def upload_photo():
         is_video = filename.lower().endswith(('.mp4', '.mov', '.webm', '.mkv', '.avi', '.3gp'))
         msg = await client.send_file(CHANNEL, img_io, caption=f"DEV-{device_id}", force_document=False)
 
-        # Aapke maange gaye format ke mutabiq script tag ya URL generate karna
-        embed_script = f'<script async src="https://telegram.org/js/telegram-widget.js?24" data-telegram-post="{CHANNEL_USERNAME}/{msg.id}" data-width="100%"></script>'
-
+        # Firebase database me data set karte waqt text fields ko bhi shamil kar diya hai
         db.reference(f"photos/{device_id}/{msg.id}").set({
             "id": msg.id,
             "date": msg.date.isoformat(),
-            "url": embed_script,
-            "is_video": is_video
+            "url": f"https://secret-ol9o.onrender.com/api/photo/{msg.id}",
+            "is_video": is_video,
+            "device_id": device_id,
+            "title": title,
+            "location": location,
+            "rent": rent,
+            "contact": contact,
+            "details": details
         })
 
         del file_bytes, img_io

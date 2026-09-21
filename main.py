@@ -23,7 +23,6 @@ async def ensure_client():
         client_started = True
 
 def send_photo_to_channel(photo_path, caption=""):
-    # Telethon async hai, Flask sync hai — isliye event loop mein chalana padta hai
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
@@ -35,6 +34,14 @@ def send_photo_to_channel(photo_path, caption=""):
         loop.close()
 
 app = Flask(__name__)
+
+# ---------- 🔥 CORS FIX (bahar se HTML file se request allow karega) ----------
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
+    return response
 
 # ---------- Simple HTML Upload Form ----------
 HTML_PAGE = """
@@ -65,15 +72,17 @@ HTML_PAGE = """
 def index():
     return render_template_string(HTML_PAGE)
 
-@app.route("/upload", methods=["POST"])
+@app.route("/upload", methods=["POST", "OPTIONS"])
 def upload():
+    if request.method == "OPTIONS":
+        return "", 200
+
     photo = request.files.get("photo")
     caption = request.form.get("caption", "")
 
     if not photo:
         return render_template_string(HTML_PAGE, message="Photo select karo!", success=False)
 
-    # Photo ko temporarily save karo
     temp_path = "/tmp/uploaded_photo.jpg"
     photo.save(temp_path)
 

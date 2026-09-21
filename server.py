@@ -43,22 +43,14 @@ def upload_photo():
         return jsonify({'error': 'File ka naam khali hai.'}), 400
 
     try:
-        bucket_name = os.environ.get('IA_BUCKET_NAME', 'binner-unique-photos-item-2026')
+        # Yahan seedha fixed bucket/item name de diya hai, ab Render mein dalne ki zaroorat nahi
+        bucket_name = 'roomfinder_8404856319'
         file_name = f"uploads/{int(time.time())}_{file.filename}"
         
         file_bytes = file.read()
         content_type = file.content_type or 'image/jpeg'
 
-        # A. Pehle check karein / Bucket create karein agar nahi hai
-        try:
-            s3.head_bucket(Bucket=bucket_name)
-        except Exception:
-            try:
-                s3.create_bucket(Bucket=bucket_name)
-            except Exception as bucket_err:
-                print("Bucket creation notice:", str(bucket_err))
-
-        # B. Internet Archive par photo upload karein
+        # Internet Archive par direct upload karein
         s3.put_object(
             Bucket=bucket_name,
             Key=file_name,
@@ -70,7 +62,7 @@ def upload_photo():
         # Internet Archive ka public URL banana
         internet_archive_url = f"https://archive.org/download/{bucket_name}/{file_name}"
 
-        # C. Firebase Firestore mein URL save karein
+        # Firebase Firestore mein URL save karein
         doc_ref = db.collection('photos').document()
         doc_ref.set({
             'url': internet_archive_url,

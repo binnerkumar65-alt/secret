@@ -1,7 +1,8 @@
 import os
 import time
+import json as jsonlib
 import asyncio
-import requests
+from urllib import request as urlrequest
 from flask import Flask, request, jsonify
 from telethon import TelegramClient
 from telethon.sessions import StringSession
@@ -16,14 +17,17 @@ CHANNEL_USERNAME = "@Cartoon_crazy_toons"
 FIREBASE_DB_URL = "https://neetjee-ca8f5-default-rtdb.firebaseio.com/"
 
 def push_to_firebase(data):
-    """Firebase Realtime DB mein data push karo (REST API se)"""
+    """Firebase Realtime DB mein data push karo (urllib se - koi extra module nahi)"""
     try:
-        response = requests.post(
+        payload = jsonlib.dumps(data).encode("utf-8")
+        req = urlrequest.Request(
             f"{FIREBASE_DB_URL}/photos.json",
-            json=data,
-            timeout=10
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
         )
-        return response.ok
+        with urlrequest.urlopen(req, timeout=10) as response:
+            return response.status == 200
     except Exception as e:
         print(f"Firebase push failed: {e}")
         return False
@@ -105,7 +109,7 @@ def upload():
         if firebase_ok:
             return jsonify({
                 "success": True,
-                "message": f"✅ Photo channel par gayi! Embed link Firebase mein push ho gaya!"
+                "message": "✅ Photo channel par gayi! Embed link Firebase mein push ho gaya!"
             })
         else:
             return jsonify({

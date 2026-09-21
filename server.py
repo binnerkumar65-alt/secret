@@ -3,6 +3,7 @@ import time
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import boto3
+from botocore.config import Config
 import firebase_admin
 from firebase_admin import credentials, firestore
 import json
@@ -10,7 +11,7 @@ import json
 app = Flask(__name__)
 CORS(app)
 
-# 1. Firebase Initialize karein (Environment variable se JSON data read karega)
+# 1. Firebase Initialize karein
 firebase_json_str = os.environ.get('FIREBASE_CONFIG_JSON')
 if firebase_json_str:
     cred_dict = json.loads(firebase_json_str)
@@ -20,12 +21,16 @@ if firebase_json_str:
 else:
     raise ValueError("FIREBASE_CONFIG_JSON environment variable set nahi hai!")
 
-# 2. Internet Archive (S3-compatible) Configuration
+# 2. Internet Archive (S3-compatible) Configuration with SigV2/Path Style
 s3 = boto3.client(
     's3',
     endpoint_url='https://s3.us.archive.org',
     aws_access_key_id=os.environ.get('IA_ACCESS_KEY'),
-    aws_secret_access_key=os.environ.get('IA_SECRET_KEY')
+    aws_secret_access_key=os.environ.get('IA_SECRET_KEY'),
+    config=Config(
+        signature_version='s3',  # Internet Archive ke liye zaroori hai
+        s3={'addressing_style': 'path'}
+    )
 )
 
 @app.route('/upload', methods=['POST'])
@@ -38,7 +43,7 @@ def upload_photo():
         return jsonify({'error': 'File ka naam khali hai.'}), 400
 
     try:
-        bucket_name = os.environ.get('IA_BUCKET_NAME', 'my-default-archive-bucket')
+        bucket_name = os.environ.get('IA_BUCKET_NAME', 'binner-photo-bucket-2026')
         file_name = f"uploads/{int(time.time())}_{file.filename}"
         
         file_bytes = file.read()

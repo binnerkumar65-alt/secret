@@ -14,16 +14,14 @@ CHANNEL_USERNAME = "Cartoon_crazy_toons"
 FIREBASE_DB_URL = "https://neetjee-ca8f5-default-rtdb.firebaseio.com/images.json"
 
 app = Flask(__name__)
-CORS(app)  # HTML se request allow karne ke liye
+CORS(app)
 
 client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
-loop = asyncio.get_event_loop()
 
 @app.route('/')
 def home():
     return "Telegram Upload Bot is running!"
 
-# HTML se photo receive karke Telegram channel par bhejne ka route
 @app.route('/upload', methods=['POST'])
 def upload_image():
     if 'image' not in request.files:
@@ -34,18 +32,19 @@ def upload_image():
     file.save(temp_path)
 
     try:
-        # Telethon ke zariye Telegram channel par photo post karna
+        # Naya event loop banakar Telegram par photo bhejna
         async def send_to_telegram():
             message = await client.send_file(CHANNEL_USERNAME, temp_path)
             return message.id
 
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         post_id = loop.run_until_complete(send_to_telegram())
+        loop.close()
         
-        # Local temporary file delete karna
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
-        # Embed script banana aur Firebase me bhejna
         embed_script = f'<script async src="https://telegram.org/js/telegram-widget.js?24" data-telegram-post="{CHANNEL_USERNAME}/{post_id}" data-width="100%"></script>'
         
         firebase_payload = {

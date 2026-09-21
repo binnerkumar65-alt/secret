@@ -103,10 +103,14 @@ async def upload_photo():
         is_video = filename.lower().endswith(('.mp4', '.mov', '.webm', '.mkv', '.avi', '.3gp'))
         msg = await client.send_file(CHANNEL, img_io, caption=f"DEV-{device_id}", force_document=False)
 
+        # Yahan Render link ki jagah Telegram message ka direct link/embed format generate kiya gaya hai
+        channel_id_str = str(CHANNEL).replace("-100", "")
+        telegram_file_url = f"https://t.me/c/{channel_id_str}/{msg.id}"
+
         db.reference(f"photos/{device_id}/{msg.id}").set({
             "id": msg.id,
             "date": msg.date.isoformat(),
-            "url": f"https://secret-ol9o.onrender.com/api/photo/{msg.id}",
+            "url": telegram_file_url,
             "is_video": is_video
         })
 

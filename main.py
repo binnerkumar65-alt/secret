@@ -1,16 +1,16 @@
 import os
 import asyncio
-from flask import Flask, request, render_template_string
+from flask import Flask, request, jsonify
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
-# ---------- Config (Render ke Environment Variables se) ----------
+# ---------- Config ----------
 API_ID = int(os.environ["API_ID"])
 API_HASH = os.environ["API_HASH"]
 SESSION_STRING = os.environ["SESSION_STRING"]
-CHANNEL_USERNAME = "@apka_channel_yahan"   # <-- apne public channel ka username likho
+CHANNEL_USERNAME = "@Cartoon_crazy_toons"   # ✅ Aapka channel
 
-# ---------- Telegram Client (sirf ek baar banega) ----------
+# ---------- Telegram Client ----------
 client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
 client_started = False
 
@@ -35,7 +35,7 @@ def send_photo_to_channel(photo_path, caption=""):
 
 app = Flask(__name__)
 
-# ---------- 🔥 CORS FIX (bahar se HTML file se request allow karega) ----------
+# ---------- CORS Fix ----------
 @app.after_request
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
@@ -43,34 +43,9 @@ def add_cors_headers(response):
     response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS"
     return response
 
-# ---------- Simple HTML Upload Form ----------
-HTML_PAGE = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Photo Upload to Telegram</title>
-    <style>
-        body { font-family: Arial; max-width: 500px; margin: 50px auto; }
-        input, button { width: 100%; padding: 10px; margin: 8px 0; }
-        button { background: #0088cc; color: white; border: none; cursor: pointer; }
-        .ok { color: green; } .err { color: red; }
-    </style>
-</head>
-<body>
-    <h2>Photo Upload karo → Telegram Channel</h2>
-    <form action="/upload" method="POST" enctype="multipart/form-data">
-        <input type="file" name="photo" accept="image/*" required>
-        <input type="text" name="caption" placeholder="Caption (optional)">
-        <button type="submit">Send to Channel</button>
-    </form>
-    {% if message %}<p class="{{ 'ok' if success else 'err' }}">{{ message }}</p>{% endif %}
-</body>
-</html>
-"""
-
 @app.route("/")
 def index():
-    return render_template_string(HTML_PAGE)
+    return "✅ Server chal raha hai! HTML file se upload karo."
 
 @app.route("/upload", methods=["POST", "OPTIONS"])
 def upload():
@@ -81,16 +56,16 @@ def upload():
     caption = request.form.get("caption", "")
 
     if not photo:
-        return render_template_string(HTML_PAGE, message="Photo select karo!", success=False)
+        return jsonify({"success": False, "message": "Photo select karo!"}), 400
 
     temp_path = "/tmp/uploaded_photo.jpg"
     photo.save(temp_path)
 
     try:
         send_photo_to_channel(temp_path, caption)
-        return render_template_string(HTML_PAGE, message="✅ Photo channel par send ho gayi!", success=True)
+        return jsonify({"success": True, "message": "✅ Photo channel par send ho gayi!"})
     except Exception as e:
-        return render_template_string(HTML_PAGE, message=f"❌ Error: {e}", success=False)
+        return jsonify({"success": False, "message": f"❌ Error: {e}"}), 500
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)

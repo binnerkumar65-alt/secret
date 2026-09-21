@@ -1,2 +1,5 @@
-flask
 telethon
+quart
+quart-cors
+hypercorn
+firebase-admin

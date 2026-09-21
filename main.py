@@ -32,15 +32,13 @@ def upload_image():
     file.save(temp_path)
 
     try:
-        # Naya event loop banakar Telegram par photo bhejna
-        async def send_to_telegram():
-            message = await client.send_file(CHANNEL_USERNAME, temp_path)
-            return message.id
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        post_id = loop.run_until_complete(send_to_telegram())
-        loop.close()
+        # Telethon ke main event loop par thread-safe tarike se file bhejna
+        future = asyncio.run_coroutine_threadsafe(
+            client.send_file(CHANNEL_USERNAME, temp_path), 
+            client.loop
+        )
+        message = future.result()  # Jab tak Telegram par upload complete na ho, yahan wait karega
+        post_id = message.id
         
         if os.path.exists(temp_path):
             os.remove(temp_path)

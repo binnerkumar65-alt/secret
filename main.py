@@ -43,11 +43,8 @@ async def periodic_cleanup():
         await asyncio.sleep(30)
         try:
             if time.time() - last_heartbeat_time > 45:
-                print("[Auto-Cleanup] HTML is closed. Skipping cleanup.", flush=True)
                 continue
-            
             gc.collect()
-            print("[Auto-Cleanup] HTML is OPEN. RAM cache cleared.", flush=True)
         except Exception as e:
             print(f"[Auto-Cleanup Error]: {e}", flush=True)
 # -----------------------------------------------------------
@@ -90,9 +87,8 @@ async def upload_photo():
     try:
         form_data = await request.form
         files = await request.files
-        device_id = form_data.get("device_id", "")
         
-        # Frontend se aane wale text fields ko yahan capture kiya gaya hai
+        device_id = form_data.get("device_id", "")
         title = form_data.get("title", "")
         location = form_data.get("location", "")
         rent = form_data.get("rent", "")
@@ -109,13 +105,17 @@ async def upload_photo():
         img_io.name = filename
 
         is_video = filename.lower().endswith(('.mp4', '.mov', '.webm', '.mkv', '.avi', '.3gp'))
+        
+        # Telegram channel par file bhejna
         msg = await client.send_file(CHANNEL, img_io, caption=f"DEV-{device_id}", force_document=False)
 
-        # Firebase database me data set karte waqt text fields ko bhi shamil kar diya hai
+        photo_url = f"https://secret-ol9o.onrender.com/api/photo/{msg.id}"
+
+        # Firebase database me URL aur saare text fields ko ek sath save karna
         db.reference(f"photos/{device_id}/{msg.id}").set({
             "id": msg.id,
             "date": msg.date.isoformat(),
-            "url": f"https://secret-ol9o.onrender.com/api/photo/{msg.id}",
+            "url": photo_url,
             "is_video": is_video,
             "device_id": device_id,
             "title": title,
@@ -129,6 +129,7 @@ async def upload_photo():
         gc.collect()
         return jsonify({"success": True, "message": "Uploaded successfully!"})
     except Exception as e:
+        print(f"[Upload Error]: {str(e)}", flush=True)
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/gallery", methods=["GET"])

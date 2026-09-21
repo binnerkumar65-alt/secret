@@ -33,7 +33,13 @@ def push_to_firebase(data):
 
 # ---------- Telegram Client (Global Setup) ----------
 client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
-loop = asyncio.get_event_loop()
+
+# Python 3.14 safe event loop creation
+try:
+    loop = asyncio.get_event_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
 async def init_telegram():
     if not client.is_connected():
@@ -54,7 +60,6 @@ def send_photo_to_channel(photo_path, caption=""):
         message = await client.send_file(CHANNEL_USERNAME, photo_path, caption=caption)
         return message
 
-    # Existing event loop ka use karein, naya loop baar-baar na banayein
     future = asyncio.run_coroutine_threadsafe(send_async(), loop)
     return future.result(timeout=30)
 

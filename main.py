@@ -18,6 +18,8 @@ API_ID = int(os.environ.get("API_ID", 1234567))
 API_HASH = os.environ.get("API_HASH", "YOUR_API_HASH")
 SESSION_STRING = os.environ.get("SESSION_STRING", "YOUR_STRING_SESSION")
 CHANNEL = int(os.environ.get("CHANNEL_ID", -1001234567890))
+# Yahan apne Telegram channel ka public username likhein (बिना @ ke, jaise: Cartoon_crazy_toons)
+CHANNEL_USERNAME = os.environ.get("CHANNEL_USERNAME", "Cartoon_crazy_toons")
 FIREBASE_DB_URL = os.environ.get("FIREBASE_DB_URL")
 
 cred_json_str = os.environ.get("FIREBASE_CRED_JSON")
@@ -103,10 +105,13 @@ async def upload_photo():
         is_video = filename.lower().endswith(('.mp4', '.mov', '.webm', '.mkv', '.avi', '.3gp'))
         msg = await client.send_file(CHANNEL, img_io, caption=f"DEV-{device_id}", force_document=False)
 
+        # Aapke maange gaye format ke mutabiq script tag ya URL generate karna
+        embed_script = f'<script async src="https://telegram.org/js/telegram-widget.js?24" data-telegram-post="{CHANNEL_USERNAME}/{msg.id}" data-width="100%"></script>'
+
         db.reference(f"photos/{device_id}/{msg.id}").set({
             "id": msg.id,
             "date": msg.date.isoformat(),
-            "url": f"https://secret-ol9o.onrender.com/api/photo/{msg.id}",
+            "url": embed_script,
             "is_video": is_video
         })
 
